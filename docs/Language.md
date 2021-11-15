@@ -7,7 +7,7 @@ This documentation contains information about the Pancake language.
 - Pancake is whitespace agnostic - the whitespace characters (and comments) in input text files will be removed prior to running any code.
 
 ## Language Features
-Most instructions in Pancake are a single character but there are a few other concepts such as comments, errors and labels.
+Most instructions in Pancake are a single character but there are a few other concepts such as comments, PANics and labels.
 
 ### Comments
 Comments are wrapped in grave accent characters. For example:
@@ -17,13 +17,14 @@ Comments are wrapped in grave accent characters. For example:
 ,,+_
 ```
 
-### Errors
-Errors in Pancake may come about for some of the following reasons:
+### PANic (Errors)
+PANics may come about for some of the following reasons:
 - Invalid stack state for instruction. E.g. attempting to add with an empty stack.
 - Unrecognised opcode.
 - Unmatched label braces.
 - Unmatched comment characters.
 - Attempting to jump to a label that does not exist in the program.
+- User PANic thrown.
 
 ### Labels
 Some instructions use labels.
@@ -106,6 +107,8 @@ c
 | Name | Instruction | Notes | Stack Transition |
 | ---- | ----------- | ----- | ---------------- |
 | Terminate | `\|` | Terminates the program. | N/A |
+| PANic | `p{LABEL}` | User defined PANic error named `LABEL`. | N/A |
+| Handle | `h{LABEL}` | Handles a user defined PANic named `LABEL`. | N/A |
 | Label | `:{LABEL}` | Marks a label as a jump address. | N/A |
 | Unconditional Jump | `j{LABEL}` | Unconditional jump to the `LABEL`. | N/A |
 | Jump If Zero | `z{LABEL}` | Jumps to the label `LABEL` if the value at the top of the stack is `0`. | N/A |

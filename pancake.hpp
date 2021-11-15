@@ -22,7 +22,7 @@
 #define PANCAKE_HPP
 
 #define PANCAKE
-#define PANCAKE_VERSION "0.1.0"
+#define PANCAKE_VERSION "0.2.0"
 
 #include <cstdint>
 #include <cstdio>
@@ -46,26 +46,74 @@ namespace Pancake
     /// Memory is a store of named values.
     using Memory = std::unordered_map<std::string, Word>;
 
-    /// Stores jump addresses for labels.
-    using Labels = std::unordered_map<std::string, std::string::size_type>;
+    /// The type of the instruction pointer.
+    using InstructionPointer = std::string::size_type;
 
-    /// Thrown when an error occurs evaluating a Pancake program.
-    class PancakeRuntimeException final : public std::runtime_error
+    /// Maps strings to instruction pointers.
+    using InstructionPointerMap = std::unordered_map<std::string, InstructionPointer>;
+
+    /// Enumerates the different types of PANics.
+    enum class PanicType
+    {
+        /// Thrown when there are not enough values on the stack for
+        /// the requested operation.
+        StackExhaustion,
+
+        /// Thrown when attempting to load an undefined variable.
+        UndefinedVariable,
+
+        /// Thrown when attempting to jump to an undefined label.
+        UndefinedLabel,
+
+        /// Thrown when no valid opcode is matched during dispatch.
+        UnrecognisedOpcode,
+
+        /// Thrown when the result of a PANic would attempt to jump to multiple addresses.
+        MultiplePanicHandlers,
+
+        /// Thrown when a string does not conform to the Pancake language.
+        InvalidLanguage,
+
+        /// Thrown by the user using the PANic (p{}) instruction.
+        User
+    };
+
+    /// Contains status flags for the Pancake virtual machine.
+    struct PancakeVirtualMachineFlags final
+    {
+        bool _running = false;
+        bool _error = false;
+    };
+
+    /// Thrown when the Pancake virtual machine or interpreter PANics.
+    class PancakePanic final : public std::runtime_error
     {
         public:
-            /// Initializes a new instance of the PancakeRuntimeException class.
+            /// Initializes a new instance of the PancakePanic class.
+            /// @param type The PANic type.
             /// @param message The message.
-            explicit PancakeRuntimeException(char const* message)
-                : std::runtime_error(message)
+            explicit PancakePanic(PanicType const type, char const* message)
+                : _type(type), std::runtime_error(message)
             {
             }
 
-            /// Initializes a new instance of the PancakeRuntimeException class.
+            /// Initializes a new instance of the PancakePanic class.
+            /// @param type The PANic type.
             /// @param message The message.
-            explicit PancakeRuntimeException(std::string const& message)
-                : std::runtime_error(message)
+            explicit PancakePanic(PanicType const type, std::string const& message)
+                : _type(type), std::runtime_error(message)
             {
             }
+
+            /// Gets the PANic type.
+            /// @returns The PANic type.
+            PanicType GetPanicType() const noexcept
+            {
+                return _type;
+            }
+
+        private:
+            PanicType _type;
     };
 
     /// A stack virtual machine architecture for the Pancake programming language.
@@ -92,10 +140,11 @@ namespace Pancake
                 _program = program;
                 _stack = Stack();
                 _memory = Memory();
-                _labels = Labels();
+                _labels = InstructionPointerMap();
+                _panicHandlers = InstructionPointerMap();
             }
 
-            /// Dispatches the opocde with no arguments to the virtual machine.
+            /// Dispatches the opcode with no arguments to the virtual machine.
             /// @param opcode The opcode to dispatch.
             void DispatchInstruction(char const opcode)
             {
@@ -248,7 +297,7 @@ namespace Pancake
                 ++_instructionPointer;
             }
 
-            /// Dispatches the opocde with a byte argument to the virtual machine.
+            /// Dispatches the opcode with a byte argument to the virtual machine.
             /// @param opcode The opcode to dispatch.
             /// @param value The byte value in the instruction.
             void DispatchWordInstruction(char const opcode, Word const value)
@@ -264,13 +313,24 @@ namespace Pancake
                 }
             }
 
-            /// Dispatches the opocde with a label argument to the virtual machine.
+            /// Dispatches the opcode with a label argument to the virtual machine.
             /// @param opcode The opcode to dispatch.
             /// @param label The label in the instruction.
             void DispatchLabelInstruction(char const opcode, std::string const& label)
             {
                 switch (opcode)
                 {
+                    case 'p':
+                        if (!HandlePanic(label))
+                        {
+                            throw PancakePanic(PanicType::User, label);
+                        }
+                        break;
+
+                    case 'h':
+                        RegisterPanicHandler(label);
+                        break;
+
                     case ':':
                     {
                         auto const jumpAddress = _instructionPointer + label.size() + 3;
@@ -339,17 +399,18 @@ namespace Pancake
 
         private:
             bool _running = false;
-            std::string::size_type _instructionPointer = 0;
+            InstructionPointer _instructionPointer = 0;
             std::string _program;
             Stack _stack{};
             Memory _memory{};
-            Labels _labels{};
+            InstructionPointerMap _labels{};
+            InstructionPointerMap _panicHandlers{};
 
             void VerifyUnaryOperation() const
             {
                 if (_stack.empty())
                 {
-                    throw PancakeRuntimeException("Attempted to perform unary operation on empty stack.");
+                    throw PancakePanic(PanicType::StackExhaustion, "Attempted to perform unary operation on empty stack.");
                 }
             }
 
@@ -357,7 +418,7 @@ namespace Pancake
             {
                 if (_stack.size() < 2)
                 {
-                    throw PancakeRuntimeException("Attempted to perform binary operation with fewer than 2 values on the stack.");
+                    throw PancakePanic(PanicType::StackExhaustion, "Attempted to perform binary operation with fewer than 2 values on the stack.");
                 }
             }
 
@@ -367,7 +428,7 @@ namespace Pancake
                 {
                     std::stringstream errorStream;
                     errorStream << "No value stored with name '" << label << "' could be found in memory.\n";
-                    throw PancakeRuntimeException(errorStream.str());
+                    throw PancakePanic(PanicType::UndefinedVariable, errorStream.str());
                 }
             }
 
@@ -408,7 +469,7 @@ namespace Pancake
                 auto foundIndex = _program.find(labelInstruction);
                 if (foundIndex == std::string::npos)
                 {
-                    throw PancakeRuntimeException(std::string("Cannot jump to label '") + label + "' as it does not exist.");
+                    throw PancakePanic(PanicType::UndefinedLabel, std::string("Cannot jump to label '") + label + "' as it does not exist.");
                 }
 
                 auto jumpIndex = foundIndex + labelInstruction.size();
@@ -432,11 +493,46 @@ namespace Pancake
                 }
             }
 
+            bool HandlePanic(std::string const& panic)
+            {
+                if (_panicHandlers.find(panic) != _panicHandlers.end()) 
+                {
+                    _instructionPointer = _panicHandlers[panic];
+                    return true;
+                }
+
+                std::stringstream expectedHandlerStringStream;
+                expectedHandlerStringStream << "h{" << panic << "}";
+                auto handlerInstruction = expectedHandlerStringStream.str();
+                auto foundIndex = _program.find(expectedHandlerStringStream.str());
+                if (foundIndex == std::string::npos)
+                {
+                    return false;
+                }   
+
+                auto jumpIndex = foundIndex + handlerInstruction.size();
+                _panicHandlers[panic] = jumpIndex;
+                _instructionPointer = jumpIndex;
+
+                return true;
+            }
+
+            void RegisterPanicHandler(std::string const& handlerLabel) 
+            {
+                auto const handlerAddress = _instructionPointer + handlerLabel.size() + 3;
+                if (_panicHandlers.find(handlerLabel) != _panicHandlers.end()) 
+                {
+                    throw PancakePanic(PanicType::MultiplePanicHandlers, std::string("Multiple PANic handlers for '") + handlerLabel + "'.");
+                }
+                _panicHandlers[handlerLabel] = handlerAddress;
+                _instructionPointer = handlerAddress;
+            }
+
             static void ThrowForUnrecognisedOpcode(char const opcode)
             {
                 std::stringstream errorStream;
                 errorStream << "Unrecognised opcode - '" << opcode << "'.\n";
-                throw PancakeRuntimeException(errorStream.str());
+                throw PancakePanic(PanicType::UnrecognisedOpcode, errorStream.str());
             }
     };
 
@@ -468,14 +564,14 @@ namespace Pancake
                             auto nextClosingBraceIndex = program.find('}', instructionPointer);
                             if (nextClosingBraceIndex == std::string::npos)
                             {
-                                throw PancakeRuntimeException("Unmatched braces for argument instruction.");
+                                throw PancakePanic(PanicType::InvalidLanguage, "Unmatched braces for argument instruction.");
                             }
                             auto argumentStartIndex = instructionPointer + 2;
                             auto argument = program.substr(argumentStartIndex, nextClosingBraceIndex - argumentStartIndex);
 
                             if (instruction == '^')
                             {
-                                auto value = static_cast<Pancake::Word>(std::stoi(argument));
+                                auto value = static_cast<Pancake::Word>(std::stoull(argument));
                                 _virtualMachine.DispatchWordInstruction(instruction, value);
                             }
                             else
@@ -489,7 +585,7 @@ namespace Pancake
                         }
                     }
                 }
-                catch (PancakeRuntimeException const& pancakeException)
+                catch (PancakePanic const& pancakeException)
                 {
                     std::cerr << "Pancake runtime error: " << pancakeException.what() << std::endl;
                 }
@@ -522,7 +618,7 @@ namespace Pancake
                     auto const commentEnd = program.find('`', commentStart + 1);
                     if (commentEnd == std::string::npos)
                     {
-                        throw PancakeRuntimeException("Unmatched comment.");
+                        throw PancakePanic(PanicType::InvalidLanguage, "Unmatched comment.");
                     }
 
                     program.erase(commentStart, commentEnd - commentStart + 1);
