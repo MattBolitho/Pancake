@@ -49,23 +49,65 @@ namespace Pancake
     /// Stores jump addresses for labels.
     using Labels = std::unordered_map<std::string, std::string::size_type>;
 
-    /// Thrown when an error occurs evaluating a Pancake program.
-    class PancakeRuntimeException final : public std::runtime_error
+    /// Enumerates the different types of PANics.
+    enum class PanicType
+    {
+        /// Thrown when there are not enough values on the stack for
+        /// the requested operation.
+        StackExhaustion,
+
+        /// Thrown when attempting to load an undefined variable.
+        UndefinedVariable,
+
+        /// Thrown when attempting to jump to an undefined label.
+        UndefinedLabel,
+
+        /// Thrown when no valid opcode is matched during dispatch.
+        UnrecognisedOpcode,
+
+        /// Thrown when a string does not conform to the Pancake language.
+        InvalidLanguage,
+
+        /// Thrown by the user using the PANic (p{}) instruction.
+        User
+    };
+
+    /// Contains status flags for the Pancake virtual machine.
+    struct PancakeVirtualMachineFlags final
+    {
+        bool _running = false;
+        bool _error = false;
+    };
+
+    /// Thrown when the Pancake virtual machine or interpreter PANics.
+    class PancakePanic final : public std::runtime_error
     {
         public:
-            /// Initializes a new instance of the PancakeRuntimeException class.
+            /// Initializes a new instance of the PancakePanic class.
+            /// @param type The PANic type.
             /// @param message The message.
-            explicit PancakeRuntimeException(char const* message)
-                : std::runtime_error(message)
+            explicit PancakePanic(PanicType const type, char const* message)
+                : _type(type), std::runtime_error(message)
             {
             }
 
-            /// Initializes a new instance of the PancakeRuntimeException class.
+            /// Initializes a new instance of the PancakePanic class.
+            /// @param type The PANic type.
             /// @param message The message.
-            explicit PancakeRuntimeException(std::string const& message)
-                : std::runtime_error(message)
+            explicit PancakePanic(PanicType const type, std::string const& message)
+                : _type(type), std::runtime_error(message)
             {
             }
+
+            /// Gets the PANic type.
+            /// @returns The PANic type.
+            PanicType GetPanicType() const noexcept
+            {
+                return _type;
+            }
+
+        private:
+            PanicType _type;
     };
 
     /// A stack virtual machine architecture for the Pancake programming language.
@@ -349,7 +391,7 @@ namespace Pancake
             {
                 if (_stack.empty())
                 {
-                    throw PancakeRuntimeException("Attempted to perform unary operation on empty stack.");
+                    throw PancakePanic(PanicType::StackExhaustion, "Attempted to perform unary operation on empty stack.");
                 }
             }
 
@@ -357,7 +399,7 @@ namespace Pancake
             {
                 if (_stack.size() < 2)
                 {
-                    throw PancakeRuntimeException("Attempted to perform binary operation with fewer than 2 values on the stack.");
+                    throw PancakePanic(PanicType::StackExhaustion, "Attempted to perform binary operation with fewer than 2 values on the stack.");
                 }
             }
 
@@ -367,7 +409,7 @@ namespace Pancake
                 {
                     std::stringstream errorStream;
                     errorStream << "No value stored with name '" << label << "' could be found in memory.\n";
-                    throw PancakeRuntimeException(errorStream.str());
+                    throw PancakePanic(PanicType::UndefinedVariable, errorStream.str());
                 }
             }
 
@@ -408,7 +450,7 @@ namespace Pancake
                 auto foundIndex = _program.find(labelInstruction);
                 if (foundIndex == std::string::npos)
                 {
-                    throw PancakeRuntimeException(std::string("Cannot jump to label '") + label + "' as it does not exist.");
+                    throw PancakePanic(PanicType::UndefinedLabel, std::string("Cannot jump to label '") + label + "' as it does not exist.");
                 }
 
                 auto jumpIndex = foundIndex + labelInstruction.size();
@@ -436,7 +478,7 @@ namespace Pancake
             {
                 std::stringstream errorStream;
                 errorStream << "Unrecognised opcode - '" << opcode << "'.\n";
-                throw PancakeRuntimeException(errorStream.str());
+                throw PancakePanic(PanicType::UnrecognisedOpcode, errorStream.str());
             }
     };
 
@@ -468,7 +510,7 @@ namespace Pancake
                             auto nextClosingBraceIndex = program.find('}', instructionPointer);
                             if (nextClosingBraceIndex == std::string::npos)
                             {
-                                throw PancakeRuntimeException("Unmatched braces for argument instruction.");
+                                throw PancakePanic(PanicType::InvalidLanguage, "Unmatched braces for argument instruction.");
                             }
                             auto argumentStartIndex = instructionPointer + 2;
                             auto argument = program.substr(argumentStartIndex, nextClosingBraceIndex - argumentStartIndex);
@@ -489,7 +531,7 @@ namespace Pancake
                         }
                     }
                 }
-                catch (PancakeRuntimeException const& pancakeException)
+                catch (PancakePanic const& pancakeException)
                 {
                     std::cerr << "Pancake runtime error: " << pancakeException.what() << std::endl;
                 }
@@ -522,7 +564,7 @@ namespace Pancake
                     auto const commentEnd = program.find('`', commentStart + 1);
                     if (commentEnd == std::string::npos)
                     {
-                        throw PancakeRuntimeException("Unmatched comment.");
+                        throw PancakePanic(PanicType::InvalidLanguage, "Unmatched comment.");
                     }
 
                     program.erase(commentStart, commentEnd - commentStart + 1);
