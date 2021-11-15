@@ -22,7 +22,7 @@
 #define PANCAKE_HPP
 
 #define PANCAKE
-#define PANCAKE_VERSION "0.1.0"
+#define PANCAKE_VERSION "0.2.0"
 
 #include <cstdint>
 #include <cstdio>
@@ -46,8 +46,11 @@ namespace Pancake
     /// Memory is a store of named values.
     using Memory = std::unordered_map<std::string, Word>;
 
-    /// Stores jump addresses for labels.
-    using Labels = std::unordered_map<std::string, std::string::size_type>;
+    /// The type of the instruction pointer.
+    using InstructionPointer = std::string::size_type;
+
+    /// Maps strings to instruction pointers.
+    using InstructionPointerMap = std::unordered_map<std::string, InstructionPointer>;
 
     /// Enumerates the different types of PANics.
     enum class PanicType
@@ -64,6 +67,9 @@ namespace Pancake
 
         /// Thrown when no valid opcode is matched during dispatch.
         UnrecognisedOpcode,
+
+        /// Thrown when the result of a PANic would attempt to jump to multiple addresses.
+        MultiplePanicHandlers,
 
         /// Thrown when a string does not conform to the Pancake language.
         InvalidLanguage,
@@ -134,10 +140,11 @@ namespace Pancake
                 _program = program;
                 _stack = Stack();
                 _memory = Memory();
-                _labels = Labels();
+                _labels = InstructionPointerMap();
+                _panicHandlers = InstructionPointerMap();
             }
 
-            /// Dispatches the opocde with no arguments to the virtual machine.
+            /// Dispatches the opcode with no arguments to the virtual machine.
             /// @param opcode The opcode to dispatch.
             void DispatchInstruction(char const opcode)
             {
@@ -290,7 +297,7 @@ namespace Pancake
                 ++_instructionPointer;
             }
 
-            /// Dispatches the opocde with a byte argument to the virtual machine.
+            /// Dispatches the opcode with a byte argument to the virtual machine.
             /// @param opcode The opcode to dispatch.
             /// @param value The byte value in the instruction.
             void DispatchWordInstruction(char const opcode, Word const value)
@@ -306,13 +313,24 @@ namespace Pancake
                 }
             }
 
-            /// Dispatches the opocde with a label argument to the virtual machine.
+            /// Dispatches the opcode with a label argument to the virtual machine.
             /// @param opcode The opcode to dispatch.
             /// @param label The label in the instruction.
             void DispatchLabelInstruction(char const opcode, std::string const& label)
             {
                 switch (opcode)
                 {
+                    case 'p':
+                        if (!HandlePanic(label))
+                        {
+                            throw PancakePanic(PanicType::User, label);
+                        }
+                        break;
+
+                    case 'h':
+                        RegisterPanicHandler(label);
+                        break;
+
                     case ':':
                     {
                         auto const jumpAddress = _instructionPointer + label.size() + 3;
@@ -381,11 +399,12 @@ namespace Pancake
 
         private:
             bool _running = false;
-            std::string::size_type _instructionPointer = 0;
+            InstructionPointer _instructionPointer = 0;
             std::string _program;
             Stack _stack{};
             Memory _memory{};
-            Labels _labels{};
+            InstructionPointerMap _labels{};
+            InstructionPointerMap _panicHandlers{};
 
             void VerifyUnaryOperation() const
             {
@@ -474,6 +493,41 @@ namespace Pancake
                 }
             }
 
+            bool HandlePanic(std::string const& panic)
+            {
+                if (_panicHandlers.find(panic) != _panicHandlers.end()) 
+                {
+                    _instructionPointer = _panicHandlers[panic];
+                    return true;
+                }
+
+                std::stringstream expectedHandlerStringStream;
+                expectedHandlerStringStream << "h{" << panic << "}";
+                auto handlerInstruction = expectedHandlerStringStream.str();
+                auto foundIndex = _program.find(expectedHandlerStringStream.str());
+                if (foundIndex == std::string::npos)
+                {
+                    return false;
+                }   
+
+                auto jumpIndex = foundIndex + handlerInstruction.size();
+                _panicHandlers[panic] = jumpIndex;
+                _instructionPointer = jumpIndex;
+
+                return true;
+            }
+
+            void RegisterPanicHandler(std::string const& handlerLabel) 
+            {
+                auto const handlerAddress = _instructionPointer + handlerLabel.size() + 3;
+                if (_panicHandlers.find(handlerLabel) != _panicHandlers.end()) 
+                {
+                    throw PancakePanic(PanicType::MultiplePanicHandlers, std::string("Multiple PANic handlers for '") + handlerLabel + "'.");
+                }
+                _panicHandlers[handlerLabel] = handlerAddress;
+                _instructionPointer = handlerAddress;
+            }
+
             static void ThrowForUnrecognisedOpcode(char const opcode)
             {
                 std::stringstream errorStream;
@@ -517,7 +571,7 @@ namespace Pancake
 
                             if (instruction == '^')
                             {
-                                auto value = static_cast<Pancake::Word>(std::stoi(argument));
+                                auto value = static_cast<Pancake::Word>(std::stoull(argument));
                                 _virtualMachine.DispatchWordInstruction(instruction, value);
                             }
                             else

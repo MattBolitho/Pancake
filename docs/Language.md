@@ -108,7 +108,7 @@ c
 | ---- | ----------- | ----- | ---------------- |
 | Terminate | `\|` | Terminates the program. | N/A |
 | PANic | `p{LABEL}` | User defined PANic error named `LABEL`. | N/A |
-| Catch | `c{LABEL}` | Catches a user defined PANic named `LABEL`. | N/A |
+| Handle | `h{LABEL}` | Handles a user defined PANic named `LABEL`. | N/A |
 | Label | `:{LABEL}` | Marks a label as a jump address. | N/A |
 | Unconditional Jump | `j{LABEL}` | Unconditional jump to the `LABEL`. | N/A |
 | Jump If Zero | `z{LABEL}` | Jumps to the label `LABEL` if the value at the top of the stack is `0`. | N/A |
