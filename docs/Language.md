@@ -7,7 +7,7 @@ This documentation contains information about the Pancake language.
 - Pancake is whitespace agnostic - the whitespace characters (and comments) in input text files will be removed prior to running any code.
 
 ## Language Features
-Most instructions in Pancake are a single character but there are a few other concepts such as comments, errors and labels.
+Most instructions in Pancake are a single character but there are a few other concepts such as comments, PANics and labels.
 
 ### Comments
 Comments are wrapped in grave accent characters. For example:
@@ -17,13 +17,14 @@ Comments are wrapped in grave accent characters. For example:
 ,,+_
 ```
 
-### Errors
-Errors in Pancake may come about for some of the following reasons:
+### PANic (Errors)
+PANics may come about for some of the following reasons:
 - Invalid stack state for instruction. E.g. attempting to add with an empty stack.
 - Unrecognised opcode.
 - Unmatched label braces.
 - Unmatched comment characters.
 - Attempting to jump to a label that does not exist in the program.
+- User PANic thrown.
 
 ### Labels
 Some instructions use labels.
@@ -100,18 +101,34 @@ c
 | Bitwise Inclusive Or | `o` | Bitwise inclusive or of the top two values of the stack. | `a b -> (a \| b)` |
 | Bitwise Exclusive Or | `x` | Bitwise exclusive or (XOR) of the top two values of the stack. | `a b -> (a ^ b)` |
 
+#### Logical Operations
+**Note**: Logical operations will convert the value of words to "boolean" like values.
+The conversion is the same as C, where `0 == false` and any non-zero value is true.
+
+| Name | Instruction | Notes | Stack Transition |
+| ---- | ----------- | ----- | ---------------- |
+| Equals | `E` | Pushes a value indicating if the top two values of the stack are equal. | `a b -> A && B` |
+| Greater Than | `G` | Pushes a value indicating if the top value of the stack is strictly greater than the second. | `a b -> A > B` |
+| Less Than | `L` | Pushes a value indicating if the top value of the stack is strictly less than the second. |`a b -> A < B` |
+| Greater Than Or Equal | `g` | Pushes a value indicating if the top value of the stack is greater than or equal to the second. | `a b -> A >= B` |
+| Less Than Or Equal | `l` | Pushes a value indicating if the top value of the stack is less than or equal to the second. | `a b -> A <= B` |
+| Not | `N` | Logically negates the top value of the stack. | `a -> !a` |
+| And | `A` | Performs logical conjunction of the top two values of the stack. | `a b -> (a && b)` |
+| Inclusive Or | `O` | Performs logical disjunction of the top two values of the stack. | `a b -> (a \|\| b)` |
+| Exclusive Or | `X` | Performs logical exclusive disjunction of the top two values of the stack. | `a b -> (!a != !b)` |
+
 #### Flow of Control Operations
 **Note**: Jump instructions do not affect the stack.
 
 | Name | Instruction | Notes | Stack Transition |
 | ---- | ----------- | ----- | ---------------- |
 | Terminate | `\|` | Terminates the program. | N/A |
+| PANic | `p{LABEL}` | User defined PANic error named `LABEL`. | N/A |
+| Handle | `h{LABEL}` | Handles a user defined PANic named `LABEL`. | N/A |
 | Label | `:{LABEL}` | Marks a label as a jump address. | N/A |
 | Unconditional Jump | `j{LABEL}` | Unconditional jump to the `LABEL`. | N/A |
 | Jump If Zero | `z{LABEL}` | Jumps to the label `LABEL` if the value at the top of the stack is `0`. | N/A |
 | Jump If Equal | `e{LABEL}` | Jumps to the label `LABEL` if the two top values of the stack are equal. | N/A |
-| Jump If Greater Than | `g{LABEL}` | Jumps to the label `LABEL` if the top value of the stack is strictly greater than the second value. | N/A |
-| Jump If Less Than | `l{LABEL}` | Jumps to the label `LABEL` if the top value of the stack is strictly less than the second value. | N/A |
 
 #### I/O Operations
 
