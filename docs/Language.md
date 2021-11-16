@@ -101,6 +101,22 @@ c
 | Bitwise Inclusive Or | `o` | Bitwise inclusive or of the top two values of the stack. | `a b -> (a \| b)` |
 | Bitwise Exclusive Or | `x` | Bitwise exclusive or (XOR) of the top two values of the stack. | `a b -> (a ^ b)` |
 
+#### Logical Operations
+**Note**: Logical operations will convert the value of words to "boolean" like values.
+The conversion is the same as C, where `0 == false` and any non-zero value is true.
+
+| Name | Instruction | Notes | Stack Transition |
+| ---- | ----------- | ----- | ---------------- |
+| Equals | `E` | Pushes a value indicating if the top two values of the stack are equal. | `a b -> A && B` |
+| Greater Than | `G` | Pushes a value indicating if the top value of the stack is strictly greater than the second. | `a b -> A > B` |
+| Less Than | `L` | Pushes a value indicating if the top value of the stack is strictly less than the second. |`a b -> A < B` |
+| Greater Than Or Equal | `g` | Pushes a value indicating if the top value of the stack is greater than or equal to the second. | `a b -> A >= B` |
+| Less Than Or Equal | `l` | Pushes a value indicating if the top value of the stack is less than or equal to the second. | `a b -> A <= B` |
+| Not | `N` | Logically negates the top value of the stack. | `a -> !a` |
+| And | `A` | Performs logical conjunction of the top two values of the stack. | `a b -> (a && b)` |
+| Inclusive Or | `O` | Performs logical disjunction of the top two values of the stack. | `a b -> (a \|\| b)` |
+| Exclusive Or | `X` | Performs logical exclusive disjunction of the top two values of the stack. | `a b -> (!a != !b)` |
+
 #### Flow of Control Operations
 **Note**: Jump instructions do not affect the stack.
 
@@ -113,8 +129,6 @@ c
 | Unconditional Jump | `j{LABEL}` | Unconditional jump to the `LABEL`. | N/A |
 | Jump If Zero | `z{LABEL}` | Jumps to the label `LABEL` if the value at the top of the stack is `0`. | N/A |
 | Jump If Equal | `e{LABEL}` | Jumps to the label `LABEL` if the two top values of the stack are equal. | N/A |
-| Jump If Greater Than | `g{LABEL}` | Jumps to the label `LABEL` if the top value of the stack is strictly greater than the second value. | N/A |
-| Jump If Less Than | `l{LABEL}` | Jumps to the label `LABEL` if the top value of the stack is strictly less than the second value. | N/A |
 
 #### I/O Operations
 

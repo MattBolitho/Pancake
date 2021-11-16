@@ -269,6 +269,54 @@ namespace Pancake
                         PerformBinaryOperation([](auto a, auto b) { return a ^ b; });
                         break;
 
+                    case 'E':
+                        VerifyBinaryOperation();
+                        PerformBinaryOperation([](auto a, auto b) { return ((Word)a == (Word)b); });
+                        break;
+
+                    case 'G':
+                        PerformBinaryOperation([](auto a, auto b) { return ((Word)a > (Word)b); });
+                        break;
+
+                    case 'L':
+                        VerifyBinaryOperation();
+                        PerformBinaryOperation([](auto a, auto b) { return ((Word)a < (Word)b); });
+                        break;
+
+                    case 'g':
+                        VerifyBinaryOperation();
+                        PerformBinaryOperation([](auto a, auto b) { return ((Word)a >= (Word)b); });
+                        break;
+
+                    case 'l':
+                        VerifyBinaryOperation();
+                        PerformBinaryOperation([](auto a, auto b) { return ((Word)a <= (Word)b); });
+                        break;
+
+                    case 'N':
+                    {
+                        VerifyUnaryOperation();
+                        auto const value = _stack.top();
+                        _stack.pop();
+                        _stack.push(!((Word)value));
+                        break;
+                    }
+
+                    case 'A':
+                        VerifyBinaryOperation();
+                        PerformBinaryOperation([](auto a, auto b) { return ((Word)a && (Word)b); });
+                        break;
+
+                    case 'O':
+                        VerifyBinaryOperation();
+                        PerformBinaryOperation([](auto a, auto b) { return ((Word)a || (Word)b); });
+                        break;
+
+                    case 'X':
+                        VerifyBinaryOperation();
+                        PerformBinaryOperation([](auto a, auto b) { return (!((Word)a) != !((Word)b)); });
+                        break;
+
                     case '.':
                         VerifyUnaryOperation();
                         std::cout << static_cast<char>(_stack.top());
@@ -354,26 +402,6 @@ namespace Pancake
                         auto const top = _stack.top();
                         _stack.pop();
                         ConditionalJump(top == _stack.top(), label);
-                        _stack.push(top);
-                        break;
-                    }
-
-                    case 'g':
-                    {
-                        VerifyBinaryOperation();
-                        auto const top = _stack.top();
-                        _stack.pop();
-                        ConditionalJump(top > _stack.top(), label);
-                        _stack.push(top);
-                        break;
-                    }
-
-                    case 'l':
-                    {
-                        VerifyBinaryOperation();
-                        auto const top = _stack.top();
-                        _stack.pop();
-                        ConditionalJump(top < _stack.top(), label);
                         _stack.push(top);
                         break;
                     }

@@ -6,10 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 🔖[0.2.0] - Unreleased
 ### ✨ Added
-- PANics (errors renamed) that can be raised by the user
+- PANics that can be raised and handled by the user
+- Relational and logical instructions
 
 ### 🙌 Improvements
-- PANic system
+- Errors are better formalized as PANics
+
+### 👋 Removed
+- Jump if greater/less than instructions (use relational instructions and jump if zero)
 
 ## 🔖[0.1.0] - 2021-11-15
 ### ✨ Added
