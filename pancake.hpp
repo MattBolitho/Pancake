@@ -78,13 +78,6 @@ namespace Pancake
         User
     };
 
-    /// Contains status flags for the Pancake virtual machine.
-    struct PancakeVirtualMachineFlags final
-    {
-        bool _running = false;
-        bool _error = false;
-    };
-
     /// Thrown when the Pancake virtual machine or interpreter PANics.
     class PancakePanic final : public std::runtime_error
     {

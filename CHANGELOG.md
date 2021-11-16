@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ✨ Added
 - PANics that can be raised and handled by the user
 - Relational and logical instructions
+- Pancake docker file
 
 ### 🙌 Improvements
 - Errors are better formalized as PANics
