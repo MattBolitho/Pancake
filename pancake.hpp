@@ -22,7 +22,7 @@
 #define PANCAKE_HPP
 
 #define PANCAKE
-#define PANCAKE_VERSION "0.2.0"
+#define PANCAKE_VERSION "0.3.0"
 
 #include <cstdint>
 #include <cstdio>
@@ -337,6 +337,31 @@ namespace Pancake
                         _stack.pop();
                         _stack.push(reinterpret_cast<Word>(memory));
                         break;
+                    }
+
+                    case 'w':
+                    {
+                        if (_stack.size() < 3)
+                        {
+                            throw PancakePanic(PanicType::StackExhaustion, "Stack contained less than 3 operands when attempting to write to memory.");
+                        }
+                        auto const index = _stack.top();
+                        _stack.pop();
+                        auto const value = _stack.top();
+                        _stack.pop();
+                        auto const pointer = reinterpret_cast<Word*>(_stack.top());
+                        pointer[index] = value;
+                        break;
+                    }
+
+                    case 'd':
+                    {
+                        VerifyBinaryOperation();
+                        auto const index = _stack.top();
+                        _stack.pop();
+                        auto const pointer = reinterpret_cast<Word*>(_stack.top());
+                        auto const dereferencedValue = pointer[index];
+                        _stack.push(dereferencedValue);
                     }
 
                     case 'f':

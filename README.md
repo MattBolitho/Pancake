@@ -1,7 +1,7 @@
 # Pancake
 
 <div style="display: inline;">
-<img src="https://img.shields.io/badge/version-0.2.0-blue"/>
+<img src="https://img.shields.io/badge/version-0.3.0-blue"/>
 <img src="https://img.shields.io/badge/license-MIT-brightgreen"/>
 <a href="https://hub.docker.com/r/mattbolithosoftware/pancake-lang"><img src="https://img.shields.io/docker/v/mattbolithosoftware/pancake-lang?label=docker&sort=semver"/></a>
 </div>

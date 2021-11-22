@@ -6,7 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 🔖[0.3.0] - Unreleased
 ### ✨ Added
-- Memory allocation and deletion
+- Heap memory I/O - buffers of a fixed size can be allocated
+- Memory instructions:
+    - Allocate and free heap memory
+    - Write values to and dereference values from an index in memory
 
 ## 🔖[0.2.0] - 2021-11-16
 ### ✨ Added
