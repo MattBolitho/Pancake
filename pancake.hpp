@@ -330,6 +330,23 @@ namespace Pancake
                         break;
                     }
 
+                    case 'm':
+                    {
+                        VerifyUnaryOperation();
+                        Word* memory = new Word[_stack.top()];
+                        _stack.pop();
+                        _stack.push(reinterpret_cast<Word>(memory));
+                        break;
+                    }
+
+                    case 'f':
+                    {
+                        auto pointer = reinterpret_cast<Word*>(_stack.top());
+                        _stack.pop();
+                        delete[] pointer;
+                        break;
+                    }
+
                     default:
                         ThrowForUnrecognisedOpcode(opcode);
                         break;

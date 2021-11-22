@@ -137,5 +137,7 @@ The conversion is the same as C, where `0 == false` and any non-zero value is tr
 | Output ASCII | `.` | Writes the top of the stack to `stdout` as a character. | `a -> ` |
 | Output Literal | `_` | Writes the top of the stack to `stdout` as a literal value. | `a -> ` |
 | Input Word | `,` | Accepts a single machine word as input from `stdin` and pushes it to the operand stack. | `a -> INPUT a` |
+| Allocate | `m` | Allocates a buffer of machine words. The length is taken from the top value of the stack. The resulting pointer is pushed to the stack. | `LENGTH -> POINTER` |
+| Free | `f` | Frees the buffer stored at the address taken from the top value of the stack. | `POINTER -> ` |
 | Store | `!{LABEL}` | Pops and stores the top of the stack into memory under the name `LABEL`. | `a -> ` |
 | Load | `?{LABEL}` | Pushes the value stored under the name `LABEL` to the operand stack. | `a -> LOADED_VALUE a` |
